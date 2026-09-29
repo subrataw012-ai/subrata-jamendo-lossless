@@ -1,0 +1,16 @@
+{
+  "id": "subrata.jamendo.lossless",
+  "version": "1.0.0",
+  "name": "Jamendo (Subrata Lossless)",
+  "description": "High quality Jamendo music addon.",
+  "idPrefixes": ["jamendo"],
+  "resources": ["catalog", "stream", "meta"],
+  "types": ["music"],
+  "catalogs": [
+    {
+      "type": "music",
+      "id": "jamendo_top",
+      "name": "Jamendo Top Tracks"
+    }
+  ]
+}
