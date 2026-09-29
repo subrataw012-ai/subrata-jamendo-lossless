@@ -2,8 +2,6 @@ const http = require("http");
 const https = require("https");
 
 const PORT = process.env.PORT || 3000;
-
-// Jamendo API client ID
 const CLIENT_ID = process.env.JAMENDO_CLIENT_ID || "709fa152";
 
 function sendJSON(res, data, status = 200) {
@@ -17,9 +15,9 @@ function sendJSON(res, data, status = 200) {
 }
 
 function jamendoRequest(path, callback) {
-  const url = `https://api.jamendo.com/v3.0/${path}`;
+  const requestURL = `https://api.jamendo.com/v3.0/${path}`;
 
-  https.get(url, (apiRes) => {
+  https.get(requestURL, (apiRes) => {
     let data = "";
 
     apiRes.on("data", chunk => {
@@ -38,6 +36,18 @@ function jamendoRequest(path, callback) {
   });
 }
 
+function searchJamendo(query, callback) {
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    format: "json",
+    limit: "50",
+    search: query,
+    audioformat: "mp31"
+  });
+
+  jamendoRequest(`tracks/?${params.toString()}`, callback);
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
@@ -46,12 +56,12 @@ const server = http.createServer((req, res) => {
     return sendJSON(res, {
       id: "subrata.jamendo",
       name: "Subrata Jamendo",
-      version: "1.0.0",
+      version: "1.1.0",
       resources: ["search", "stream"]
     });
   }
 
-  // Search
+  // BitChord search
   if (url.pathname === "/search") {
     const query = (url.searchParams.get("q") || "").trim();
 
@@ -59,15 +69,7 @@ const server = http.createServer((req, res) => {
       return sendJSON(res, { tracks: [] });
     }
 
-    const params = new URLSearchParams({
-      client_id: CLIENT_ID,
-      format: "json",
-      limit: "20",
-      namesearch: query,
-      audioformat: "flac"
-    });
-
-    jamendoRequest(`tracks/?${params.toString()}`, (error, data) => {
+    searchJamendo(query, (error, data) => {
       if (error) {
         return sendJSON(res, {
           error: "Jamendo API error"
@@ -83,8 +85,8 @@ const server = http.createServer((req, res) => {
           album: track.album_name || "Jamendo",
           duration: Number(track.duration) || 0,
           artworkURL: track.album_image || track.image || "",
-          format: "flac",
-          audioQuality: "LOSSLESS"
+          format: "mp3",
+          audioQuality: "HIGH"
         }));
 
       return sendJSON(res, { tracks });
@@ -93,7 +95,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Stream
+  // BitChord stream
   if (url.pathname.startsWith("/stream/")) {
     const id = decodeURIComponent(
       url.pathname.substring("/stream/".length)
@@ -108,8 +110,8 @@ const server = http.createServer((req, res) => {
     const params = new URLSearchParams({
       client_id: CLIENT_ID,
       format: "json",
-      id: id,
-      audioformat: "flac",
+      id,
+      audioformat: "mp31",
       action: "stream"
     });
 
@@ -124,16 +126,16 @@ const server = http.createServer((req, res) => {
 
       if (!track || !track.audio) {
         return sendJSON(res, {
-          error: "FLAC stream not available for this track"
+          error: "Audio stream not available"
         }, 404);
       }
 
       return sendJSON(res, {
         url: track.audio,
-        format: "flac",
-        quality: "Lossless · FLAC",
-        codec: "flac",
-        container: "flac",
+        format: "mp3",
+        quality: "High",
+        codec: "mp3",
+        container: "mp3",
         manifest: "none",
         encrypted: false
       });
@@ -148,5 +150,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Subrata Jamendo addon running on port ${PORT}`);
+  console.log(`Subrata Jamendo BitChord addon running on port ${PORT}`);
 });
